@@ -4,9 +4,12 @@ package com.biol498.rpkmvisualizer;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
+import java.awt.GridLayout;
 import java.awt.event.MouseEvent;
+import java.util.List;
 
 import javax.swing.JComponent;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
@@ -14,6 +17,7 @@ import javax.swing.SwingUtilities;
 import com.clcbio.api.base.persistence.PersistenceException;
 import com.clcbio.api.base.util.State;
 import com.clcbio.api.free.datatypes.ClcObject;
+import com.clcbio.api.free.datatypes.bioinformatics.gis.track.Track;
 import com.clcbio.api.free.datatypes.bioinformatics.sequence.Sequence;
 import com.clcbio.api.free.datatypes.bioinformatics.sequence.list.SequenceList;
 import com.clcbio.api.free.datatypes.framework.listener.ObjectEvent;
@@ -34,12 +38,12 @@ import com.clcbio.api.free.workbench.WorkbenchManager;
 public class RpkmVisualizer extends AbstractEditor {
     public final static String PLUGIN_GROUP = "free";
     private JTextArea textArea;
+    private VisualizerPanel visualizerpanel;
     private ClcFocusScrollPane scrollPane;
     private Sequence seq;
     private ObjectListener sequenceListener;
 
     private Font font = new Font("Monospaced", Font.PLAIN, 12);
-    private float[] sizeLookup = new float[] {6f, 9f, 12f, 18f, 24f};
     
     public boolean canEdit(Class<?>[] types) {
         // TODO: Implement
@@ -48,10 +52,11 @@ public class RpkmVisualizer extends AbstractEditor {
           //      return false;
         return true;
     }
-    
+
     public void initEditorInstance(WorkbenchManager wm, ClcObject[] models, Workspace ws) {
         super.initEditorInstance(wm, models, ws);
-        seq = ((SequenceList)models[0]).getSequence(0);
+        //seq = ((SequenceList)models[0]).getSequence(0);
+        //com.clcbio.main.base.data.experiment.RnaSeqSampleStatistics rsss;
 
         sequenceListener = new ObjectListener() {
             public void eventOccurred(ObjectEvent event) {
@@ -61,17 +66,21 @@ public class RpkmVisualizer extends AbstractEditor {
                 update();
             }
         };
-        seq.addListener(sequenceListener);
+        //seq.addListener(sequenceListener);
     }
-    
+
     public JComponent createModelView() {
-        textArea = new JTextAreaNotPasteable();
-        textArea.setText(seq.getString());
-        textArea.setFont(font);
-        textArea.setBackground(Color.WHITE);
-        textArea.setEditable(false);
-        scrollPane = new ClcFocusScrollPane(textArea);
-        textArea.setCaretPosition(0);
+        //textArea = new JTextAreaNotPasteable();
+        //textArea.setText(seq.getString());
+        //textArea.setFont(font);
+        //textArea.setBackground(Color.WHITE);
+        //textArea.setEditable(false);
+
+        visualizerpanel = new VisualizerPanel(null);
+
+        scrollPane = new ClcFocusScrollPane(visualizerpanel);
+
+        //textArea.setCaretPosition(0);
         return scrollPane;
     }
     
@@ -92,12 +101,12 @@ public class RpkmVisualizer extends AbstractEditor {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 try {
-                    textArea.setText(seq.getString());
+                    //textArea.setText(seq.getString());
                 }
                 catch (Exception e) {
-                    textArea.setText("ERROR");
+                    //textArea.setText("ERROR");
                 }
-                textArea.setCaretPosition(0);
+                //textArea.setCaretPosition(0);
             }
         });
     }
@@ -129,7 +138,7 @@ public class RpkmVisualizer extends AbstractEditor {
     }
     
     public ClcObject[] getEditingObjects(boolean isDragging) {
-        return new ClcObject[] { seq };
+        return new ClcObject[] { /*seq*/ };
     }
     
     public String toString() {

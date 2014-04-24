@@ -34,6 +34,8 @@ public class VisualizerPanel extends JComponent {
     private double zoom;
     private List<RpkmRegion> rpkmRegions;
     private int maxLabelWidth;
+    private int leftColumnHeight;
+    private int rightColumnHeight;
 
     public VisualizerPanel(List<RpkmRegion> regions) {
         //seq = s;
@@ -44,20 +46,18 @@ public class VisualizerPanel extends JComponent {
         diameter = 300;
         zoom = 1.5d;
 
-        maxRpkm = -1;
+        // These have to be set when Graphics is available for font measuring
+        maxLabelWidth = -1;
+
+        maxRpkm = 0;
         maxMagnitude = 50;
-        maxLabelWidth = 0;
         length = 0;
 
-        Graphics g = getGraphics();
-        FontMetrics fm = g.getFontMetrics();
-        for(int i = 0; i < regions.size(); i++) {
-            if((int)regions.get(i).getRpkm() > maxRpkm)
-                maxRpkm = (int)regions.get(i).getRpkm();
-            if(regions.get(i).getEnd() > length)
-                length = regions.get(i).getEnd();
-            if((int)fm.getStringBounds(rpkmRegions.get(i).getName(), g).getWidth() > maxLabelWidth)
-                maxLabelWidth = (int)fm.getStringBounds(rpkmRegions.get(i).getName(), g).getWidth();
+        for(int i = 0; i < rpkmRegions.size(); i++) {
+            if((int)rpkmRegions.get(i).getRpkm() > maxRpkm)
+                maxRpkm = (int)rpkmRegions.get(i).getRpkm();
+            if(rpkmRegions.get(i).getEnd() > length)
+                length = rpkmRegions.get(i).getEnd();
         }
 
         this.setPreferredSize(new Dimension(getWholeWidth(),getWholeHeight()));
@@ -72,7 +72,7 @@ public class VisualizerPanel extends JComponent {
     }
 
     private int getWholeHeight() {
-        return (2 * margin) + getFigureWidth() + (2 * getTextColumnWidth()); // Add a margin between text columns and figure
+        return (2 * margin) + Math.max(getFigureWidth(), Math.max(leftColumnHeight, rightColumnHeight)); // Add a margin between text columns and figure
     }
 
     private int getTextColumnWidth() {
@@ -85,7 +85,27 @@ public class VisualizerPanel extends JComponent {
 
     public void paint(Graphics graphics) {
         super.paint(graphics);
+
         Graphics2D g = (Graphics2D)graphics;
+        FontMetrics fm = g.getFontMetrics();
+        Rectangle2D bounds;
+
+        if (maxLabelWidth == -1) {
+            int countRightColumn = 0;
+            for(int i = 0; i < rpkmRegions.size(); i++) {
+                if ((rpkmRegions.get(i).getStart() + rpkmRegions.get(i).getEnd())/2 < length/2)
+                    countRightColumn++;
+                if((int)fm.getStringBounds(rpkmRegions.get(i).getName(), g).getWidth() > maxLabelWidth)
+                    maxLabelWidth = (int)fm.getStringBounds(rpkmRegions.get(i).getName(), g).getWidth();
+            }
+            int countLeftColumn = rpkmRegions.size() - countRightColumn;
+
+            leftColumnHeight = (int)(countLeftColumn * fm.getStringBounds("A", g).getHeight());
+            rightColumnHeight = (int)(countRightColumn * fm.getStringBounds("A", g).getHeight());
+
+            this.setPreferredSize(new Dimension(getWholeWidth(),getWholeHeight()));
+        }
+
         int zoomdiam = (int)(diameter * zoom);
         int centerx = getWholeWidth()/2;
         int centery = getWholeHeight()/2;
@@ -130,12 +150,11 @@ public class VisualizerPanel extends JComponent {
         g.setColor(c);
         g.drawOval(left, top, zoomdiam, zoomdiam);
         
-        FontMetrics fm = g.getFontMetrics();
-        Rectangle2D bounds;
         int rightcolumn_left = margin + getTextColumnWidth() + getFigureWidth();
-        int column_top = margin;
+        int rightcolumn_top = (getWholeHeight() - rightColumnHeight)/2;
+        int leftcolumn_top = (getWholeHeight() - leftColumnHeight)/2;
         int leftcolumn_right = margin + getTextColumnWidth();
-        int pos = column_top;
+        int pos = rightcolumn_top;
         int i = 0;
         for (; i < rpkmRegions.size(); i++) {
             if ((rpkmRegions.get(i).getStart() + rpkmRegions.get(i).getEnd())/2 > length/2)
@@ -147,7 +166,7 @@ public class VisualizerPanel extends JComponent {
                     (int)(pos + bounds.getHeight()));
             pos = pos + (int)bounds.getHeight();
         }
-        pos = column_top;
+        pos = leftcolumn_top;
         for (; i < rpkmRegions.size(); i++) {
             bounds = fm.getStringBounds(rpkmRegions.get(i).getName(), g);
             g.drawString(

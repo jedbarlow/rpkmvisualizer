@@ -11,6 +11,7 @@ import java.awt.RenderingHints;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -31,9 +32,10 @@ public class VisualizerPanel extends JComponent {
     private static final int margin = 30;
     private int diameter;
     private double zoom;
+    private List<RpkmRegion> rpkmRegions;
     
-    public VisualizerPanel(Sequence s) {
-        seq = s;
+    public VisualizerPanel(List<RpkmRegion> regions) {
+        //seq = s;
         //this.setLayout(null);
         
         diameter = 300;
@@ -44,17 +46,9 @@ public class VisualizerPanel extends JComponent {
 
         ArrayList<Integer> a;
         maxMagnitude = 0;
-        for(int i = 0; i < 100; i++) {
-            a = new ArrayList<Integer>(2);
-            a.add(spot); // Start
-            spot += r.nextInt(1000);
-            a.add(spot); // End
-            spot += 1;
-            a.add((int)(100 * Math.pow(r.nextDouble(), 3))); // Amount
-            if(a.get(2) > maxMagnitude)
-                maxMagnitude = a.get(2);
-            a.add(r.nextInt(100000));
-            randomData.add(a);
+        for(int i = 0; i < regions.size(); i++) {
+            if((int)regions.get(i).getRpkm() > maxMagnitude)
+                maxMagnitude = (int)regions.get(i).getRpkm();
         }
         length = spot + 50;
 

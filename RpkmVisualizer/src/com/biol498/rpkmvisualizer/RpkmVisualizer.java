@@ -6,6 +6,7 @@ import java.awt.Component;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JComponent;
@@ -17,9 +18,11 @@ import javax.swing.SwingUtilities;
 import com.clcbio.api.base.persistence.PersistenceException;
 import com.clcbio.api.base.util.State;
 import com.clcbio.api.free.datatypes.ClcObject;
+import com.clcbio.api.free.datatypes.bioinformatics.gis.track.ExpressionTrackTableModel;
 import com.clcbio.api.free.datatypes.bioinformatics.gis.track.Track;
 import com.clcbio.api.free.datatypes.bioinformatics.sequence.Sequence;
 import com.clcbio.api.free.datatypes.bioinformatics.sequence.list.SequenceList;
+import com.clcbio.api.free.datatypes.bioinformatics.sequence.region.Region;
 import com.clcbio.api.free.datatypes.framework.listener.ObjectEvent;
 import com.clcbio.api.free.datatypes.framework.listener.ObjectListener;
 import com.clcbio.api.free.datatypes.framework.listener.SelectionEvent;
@@ -34,6 +37,7 @@ import com.clcbio.api.free.gui.icon.ClcIcon;
 import com.clcbio.api.free.gui.icon.SimpleClcIcon;
 import com.clcbio.api.free.gui.icon.EmptyIcon;
 import com.clcbio.api.free.workbench.WorkbenchManager;
+import com.clcbio.datatypes.bioinformatics.gis.track.ExpressionTrackImpl;
 
 public class RpkmVisualizer extends AbstractEditor {
     public final static String PLUGIN_GROUP = "free";
@@ -41,6 +45,7 @@ public class RpkmVisualizer extends AbstractEditor {
     private VisualizerPanel visualizerpanel;
     private ClcFocusScrollPane scrollPane;
     private Sequence seq;
+    private List<RpkmRegion> rpkmRegions;
     private ObjectListener sequenceListener;
 
     private Font font = new Font("Monospaced", Font.PLAIN, 12);
@@ -55,8 +60,35 @@ public class RpkmVisualizer extends AbstractEditor {
 
     public void initEditorInstance(WorkbenchManager wm, ClcObject[] models, Workspace ws) {
         super.initEditorInstance(wm, models, ws);
-        //seq = ((SequenceList)models[0]).getSequence(0);
-        //com.clcbio.main.base.data.experiment.RnaSeqSampleStatistics rsss;
+        ExpressionTrackImpl eti = (ExpressionTrackImpl)models[0];
+        ExpressionTrackTableModel tm = eti.getTableModel();
+        rpkmRegions = new ArrayList<RpkmRegion>(tm.getRowCount());
+
+        // Discover columns
+        int name_column = -1;
+        int region_column = -1;
+        int rpkm_column = -1;
+        for (int i = 0; i < tm.getColumnCount(); i++) {
+            String cn = tm.getColumnName(i);
+            if (cn.compareToIgnoreCase("name") == 0)
+                name_column = i;
+            else if (cn.compareToIgnoreCase("region") == 0)
+                region_column = i;
+            else if (cn.compareToIgnoreCase("rpkm") == 0)
+                rpkm_column = i;
+        }
+
+        // TODO: Handle case of columns not found
+
+        for (int i = 0; i < tm.getRowCount(); i++) {
+            String name = (String) tm.getValueAt(i, name_column);
+            String region = tm.getValueAt(i, region_column).toString();
+            int start = Integer.parseInt(region.substring(region.indexOf('(') + 1, region.indexOf('.')));
+            int end = Integer.parseInt(region.substring(region.lastIndexOf('.') + 1, region.indexOf(')')));
+            Double rpkm = (Double) tm.getValueAt(i, rpkm_column);
+
+            rpkmRegions.add(new RpkmRegion(start, end, name, rpkm));
+        }
 
         sequenceListener = new ObjectListener() {
             public void eventOccurred(ObjectEvent event) {
@@ -76,7 +108,7 @@ public class RpkmVisualizer extends AbstractEditor {
         //textArea.setBackground(Color.WHITE);
         //textArea.setEditable(false);
 
-        visualizerpanel = new VisualizerPanel(null);
+        visualizerpanel = new VisualizerPanel(rpkmRegions);
 
         scrollPane = new ClcFocusScrollPane(visualizerpanel);
 

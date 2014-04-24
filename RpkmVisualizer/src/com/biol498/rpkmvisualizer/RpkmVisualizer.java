@@ -82,9 +82,15 @@ public class RpkmVisualizer extends AbstractEditor {
 
         for (int i = 0; i < tm.getRowCount(); i++) {
             String name = (String) tm.getValueAt(i, name_column);
+
             String region = tm.getValueAt(i, region_column).toString();
-            int start = Integer.parseInt(region.substring(region.indexOf('(') + 1, region.indexOf('.')));
-            int end = Integer.parseInt(region.substring(region.lastIndexOf('.') + 1, region.indexOf(')')));
+            int substring_first = region.indexOf('(') != -1 ? region.indexOf('(') + 1 : 0;
+            int substring_delim = region.indexOf("..");
+            int substring_end = region.indexOf(')') != -1 ? region.indexOf(')') : region.length();
+
+            int start = Integer.parseInt(region.substring(substring_first, substring_delim));
+            int end = Integer.parseInt(region.substring(substring_delim + 2, substring_end));
+
             Double rpkm = (Double) tm.getValueAt(i, rpkm_column);
 
             rpkmRegions.add(new RpkmRegion(start, end, name, rpkm));

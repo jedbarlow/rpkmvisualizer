@@ -26,51 +26,63 @@ import com.clcbio.api.free.datatypes.bioinformatics.sequence.Sequence;
 public class VisualizerPanel extends JComponent {
     private static final long serialVersionUID = -2830785835576165007L;
     private Sequence seq;
-    private ArrayList<ArrayList<Integer>> randomData;
     private int length;
+    private int maxRpkm;
     private int maxMagnitude;
     private static final int margin = 30;
     private int diameter;
     private double zoom;
     private List<RpkmRegion> rpkmRegions;
-    
+    private int maxLabelWidth;
+
     public VisualizerPanel(List<RpkmRegion> regions) {
         //seq = s;
         //this.setLayout(null);
-        
+
+        rpkmRegions = regions;
+
         diameter = 300;
         zoom = 1.5d;
-        randomData = new ArrayList<ArrayList<Integer>>();
-        int spot = 0;
-        Random r = new Random();
 
-        ArrayList<Integer> a;
-        maxMagnitude = 0;
+        maxRpkm = -1;
+        maxMagnitude = 50;
+        maxLabelWidth = 0;
+        length = 0;
+
+        Graphics g = getGraphics();
+        FontMetrics fm = g.getFontMetrics();
         for(int i = 0; i < regions.size(); i++) {
-            if((int)regions.get(i).getRpkm() > maxMagnitude)
-                maxMagnitude = (int)regions.get(i).getRpkm();
+            if((int)regions.get(i).getRpkm() > maxRpkm)
+                maxRpkm = (int)regions.get(i).getRpkm();
+            if(regions.get(i).getEnd() > length)
+                length = regions.get(i).getEnd();
+            if((int)fm.getStringBounds(rpkmRegions.get(i).getName(), g).getWidth() > maxLabelWidth)
+                maxLabelWidth = (int)fm.getStringBounds(rpkmRegions.get(i).getName(), g).getWidth();
         }
-        length = spot + 50;
 
         this.setPreferredSize(new Dimension(getWholeWidth(),getWholeHeight()));
     }
-    
+
+    private Double rpkmToMagnitude(Double rpkm) {
+        return rpkm / maxRpkm * 50;
+    }
+
     private int getWholeWidth() {
         return (2 * margin) + getFigureWidth() + (2 * getTextColumnWidth()); // Add a margin between text columns and figure
     }
-    
+
     private int getWholeHeight() {
         return (2 * margin) + getFigureWidth() + (2 * getTextColumnWidth()); // Add a margin between text columns and figure
     }
-    
+
     private int getTextColumnWidth() {
-        return 100; // Find max label width
+        return maxLabelWidth; // Find max label width
     }
 
     private int getFigureWidth() {
         return (int)((diameter + maxMagnitude) * zoom);
     }
-    
+
     public void paint(Graphics graphics) {
         super.paint(graphics);
         Graphics2D g = (Graphics2D)graphics;
@@ -93,11 +105,11 @@ public class VisualizerPanel extends JComponent {
         double startDeg;
         double endDeg;
         double magnitude;
-        for (int i = 0; i < randomData.size(); i++) {
-            startDeg = 360 * randomData.get(i).get(0) / length;
-            endDeg = 360 * randomData.get(i).get(1) / length;
+        for (int i = 0; i < rpkmRegions.size(); i++) {
+            startDeg = 360 * rpkmRegions.get(i).getStart() / length;
+            endDeg = 360 * rpkmRegions.get(i).getEnd() / length;
 
-            magnitude = randomData.get(i).get(2) * zoom;
+            magnitude = rpkmToMagnitude(rpkmRegions.get(i).getRpkm()) * zoom;
 
             g.fill(
                     new Arc2D.Double(
@@ -120,26 +132,26 @@ public class VisualizerPanel extends JComponent {
         
         FontMetrics fm = g.getFontMetrics();
         Rectangle2D bounds;
-        int rightcolumn_left = margin + 100 + getFigureWidth();
+        int rightcolumn_left = margin + getTextColumnWidth() + getFigureWidth();
         int column_top = margin;
-        int leftcolumn_right = margin + 100;
+        int leftcolumn_right = margin + getTextColumnWidth();
         int pos = column_top;
         int i = 0;
-        for (; i < randomData.size(); i++) {
-            if ((randomData.get(i).get(0) + randomData.get(i).get(1))/2 > length/2)
+        for (; i < rpkmRegions.size(); i++) {
+            if ((rpkmRegions.get(i).getStart() + rpkmRegions.get(i).getEnd())/2 > length/2)
                 break;
-            bounds = fm.getStringBounds(randomData.get(i).get(3).toString(), g);
+            bounds = fm.getStringBounds(rpkmRegions.get(i).getName(), g);
             g.drawString(
-                    randomData.get(i).get(3).toString(),
+                    rpkmRegions.get(i).getName(),
                     rightcolumn_left,
                     (int)(pos + bounds.getHeight()));
             pos = pos + (int)bounds.getHeight();
         }
         pos = column_top;
-        for (; i < randomData.size(); i++) {
-            bounds = fm.getStringBounds(randomData.get(i).get(3).toString(), g);
+        for (; i < rpkmRegions.size(); i++) {
+            bounds = fm.getStringBounds(rpkmRegions.get(i).getName(), g);
             g.drawString(
-                    randomData.get(i).get(3).toString(),
+                    rpkmRegions.get(i).getName(),
                     (int)(leftcolumn_right - bounds.getWidth()),
                     (int)(pos + bounds.getHeight()));
             pos = pos + (int)bounds.getHeight();

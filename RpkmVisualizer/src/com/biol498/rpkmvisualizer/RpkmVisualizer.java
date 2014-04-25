@@ -42,6 +42,8 @@ import com.clcbio.datatypes.bioinformatics.gis.track.ExpressionTrackImpl;
 public class RpkmVisualizer extends AbstractEditor {
     public final static String PLUGIN_GROUP = "free";
     private JTextArea textArea;
+    private RpkmVisualizerModel model;
+    private RpkmVisualizerView view;
     private VisualizerPanel visualizerpanel;
     private ClcFocusScrollPane scrollPane;
     private Sequence seq;
@@ -96,14 +98,21 @@ public class RpkmVisualizer extends AbstractEditor {
             rpkmRegions.add(new RpkmRegion(start, end, name, rpkm));
         }
 
-        sequenceListener = new ObjectListener() {
-            public void eventOccurred(ObjectEvent event) {
-                if (event instanceof SelectionEvent) {
-                    return;
-                }
-                update();
-            }
-        };
+        model = new RpkmVisualizerModel(manager);
+        view = new RpkmVisualizerView(model);
+
+        // TODO: add side panel listener
+
+        addSidePanelView(view);
+
+        //sequenceListener = new ObjectListener() {
+        //    public void eventOccurred(ObjectEvent event) {
+        //        if (event instanceof SelectionEvent) {
+        //            return;
+        //        }
+        //        update();
+        //    }
+        //};
         //seq.addListener(sequenceListener);
     }
 
@@ -165,14 +174,14 @@ public class RpkmVisualizer extends AbstractEditor {
     @Override
     protected State getEditorState() {
         State s = super.getEditorState();
-        //s.putAll(textModel.save());
+        s.putAll(model.save());
         return s;
     }
     
     @Override
     protected void setEditorState(State s) {
         super.setEditorState(s);
-        //textModel.load(s);
+        model.load(s);
     }
     
     public ClcObject[] getEditingObjects(boolean isDragging) {

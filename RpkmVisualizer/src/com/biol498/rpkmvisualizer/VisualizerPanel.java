@@ -7,8 +7,10 @@ import java.awt.Dimension;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.RenderingHints;
 import java.awt.geom.Arc2D;
+import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +27,48 @@ import com.clcbio.api.free.datatypes.bioinformatics.sequence.Sequence;
 
 public class VisualizerPanel extends JComponent {
     private static final long serialVersionUID = -2830785835576165007L;
+
+    private class RegionLabel {
+        public int x;
+        public int y;
+        public int width;
+        public int height;
+        public int anchorSide;
+        public String text;
+
+        public static final int LEFT = 0;
+        public static final int RIGHT = 1;
+
+        public Point getAnchor() {
+            if (anchorSide == LEFT)
+                return new Point(x, y + height/2);
+            else
+                return new Point(x + width, y + height/2);
+        }
+
+        public RegionLabel(String label, int anchor, Graphics g) {
+            FontMetrics fm = g.getFontMetrics();
+            Rectangle2D bounds = fm.getStringBounds(label, g);
+            width = (int)bounds.getWidth();
+            height = (int)bounds.getHeight();
+
+            text = label;
+            anchorSide = anchor;
+        }
+
+        public void anchorAt(int atx, int aty) {
+            if (anchorSide == LEFT)
+                x = atx;
+            else
+                x = atx - width;
+            y = aty - height/2;
+        }
+
+        public void draw(Graphics g) {
+            g.drawString(text, x, y);
+        }
+    }
+
     private Sequence seq;
     private int length;
     private int maxRpkm;
@@ -34,24 +78,25 @@ public class VisualizerPanel extends JComponent {
     private double zoom;
     private List<RpkmRegion> rpkmRegions;
     private int maxLabelWidth;
-    private int leftColumnHeight;
-    private int rightColumnHeight;
+    private int columnHeight;
+
+    private List<RegionLabel> leftColumn;
+    private List<RegionLabel> rightColumn;
 
     private boolean needResize;
 
     public VisualizerPanel(List<RpkmRegion> regions) {
-        //seq = s;
-        //this.setLayout(null);
-
         rpkmRegions = regions;
 
         diameter = 300;
         zoom = 1.5d;
 
+        needResize = true;
         // These have to be set when Graphics is available for font measuring
         maxLabelWidth = -1;
-
-        needResize = true;
+        columnHeight = -1;
+        leftColumn = new ArrayList<RegionLabel>();
+        rightColumn = new ArrayList<RegionLabel>();
 
         maxRpkm = 0;
         maxMagnitude = 50;
@@ -72,35 +117,78 @@ public class VisualizerPanel extends JComponent {
     }
 
     private int getWholeWidth() {
-        return (2 * margin) + getFigureWidth() + (2 * getTextColumnWidth()); // Add a margin between text columns and figure
+        return (4 * margin) + getFigureWidth() + getMaxLabelWidth(leftColumn) + getMaxLabelWidth(rightColumn); // Add a margin between text columns and figure
     }
 
     private int getWholeHeight() {
-        return (2 * margin) + Math.max(getFigureWidth(), Math.max(leftColumnHeight, rightColumnHeight)); // Add a margin between text columns and figure
-    }
-
-    private int getTextColumnWidth() {
-        return maxLabelWidth; // Find max label width
+        return (2 * margin) + Math.max(getFigureWidth(), columnHeight); // Add a margin between text columns and figure
     }
 
     private int getFigureWidth() {
         return (int)((diameter + maxMagnitude) * zoom);
     }
 
-    private void recalculateSize(Graphics g) {
-        FontMetrics fm = g.getFontMetrics();
+    private int minColumnHeight(List<RegionLabel> column, Graphics g) {
+        int labelHeight = (int)g.getFontMetrics().getStringBounds("A", g).getHeight();
+        return labelHeight * column.size();
+    }
 
-        int countRightColumn = 0;
+    private void distributeLabelsVertically(List<RegionLabel> column, int x, int upperBound, int lowerBound, Graphics g) {
+        int labelHeight = getLabelHeight(g);
+
+        int top = upperBound + labelHeight/2;
+        int bottom = lowerBound - labelHeight/2;
+
+        for (int i = 0; i < column.size(); i++) {
+            column.get(i).anchorAt(
+                    x,
+                    (int)(top + ((bottom - top) * (((double)i)/column.size()))));
+        }
+    }
+
+    private int getLabelHeight(Graphics g) {
+        return (int)g.getFontMetrics().getStringBounds("A", g).getHeight();
+    }
+
+    private int getMaxLabelWidth(List<RegionLabel> column) {
+        int maxWidth = 0;
+        for (int i = 0; i < column.size(); i++)
+            if (column.get(i).width > maxWidth)
+                maxWidth = column.get(i).width;
+        return maxWidth;
+    }
+
+    private void layoutEverything(Graphics g) {
+        leftColumn.clear();
+        rightColumn.clear();
+
         for (int i = 0; i < rpkmRegions.size(); i++) {
             if ((rpkmRegions.get(i).getStart() + rpkmRegions.get(i).getEnd())/2 < length/2)
-                countRightColumn++;
-            if ((int)fm.getStringBounds(rpkmRegions.get(i).getName(), g).getWidth() > maxLabelWidth)
-                maxLabelWidth = (int)fm.getStringBounds(rpkmRegions.get(i).getName(), g).getWidth();
+                rightColumn.add(
+                        new RegionLabel(rpkmRegions.get(i).getName(), RegionLabel.LEFT, g));
+            else
+                leftColumn.add(
+                        new RegionLabel(rpkmRegions.get(i).getName(), RegionLabel.RIGHT, g));
         }
-        int countLeftColumn = rpkmRegions.size() - countRightColumn;
 
-        leftColumnHeight = (int)(countLeftColumn * fm.getStringBounds("A", g).getHeight());
-        rightColumnHeight = (int)(countRightColumn * fm.getStringBounds("A", g).getHeight());
+        columnHeight = Math.max(
+                getFigureWidth(),
+                Math.max(
+                        minColumnHeight(leftColumn, g),
+                        minColumnHeight(rightColumn, g)));
+
+        distributeLabelsVertically(
+                leftColumn,
+                margin + getMaxLabelWidth(leftColumn),
+                margin,
+                margin + columnHeight,
+                g);
+        distributeLabelsVertically(
+                rightColumn,
+                margin + getMaxLabelWidth(leftColumn) + margin + getFigureWidth() + margin,
+                margin,
+                margin + columnHeight,
+                g);
 
         this.setPreferredSize(new Dimension(getWholeWidth(),getWholeHeight()));
         this.revalidate();
@@ -115,14 +203,14 @@ public class VisualizerPanel extends JComponent {
         Rectangle2D bounds;
 
         if (needResize)
-            recalculateSize(g);
+            layoutEverything(g);
 
         int zoomdiam = (int)(diameter * zoom);
-        int centerx = getWholeWidth()/2;
+        int centerx = margin + getMaxLabelWidth(leftColumn) + margin + getFigureWidth()/2;
         int centery = getWholeHeight()/2;
         int left = centerx - (zoomdiam/2);
         int top = centery - (zoomdiam/2);
-        
+
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 RenderingHints.VALUE_ANTIALIAS_ON);
         Color c = g.getColor();
@@ -160,7 +248,12 @@ public class VisualizerPanel extends JComponent {
                 RenderingHints.VALUE_ANTIALIAS_ON);
         g.setColor(c);
         g.drawOval(left, top, zoomdiam, zoomdiam);
-        
+
+        for (int i = 0; i < leftColumn.size(); i++)
+            leftColumn.get(i).draw(g);
+        for (int i = 0; i < rightColumn.size(); i++)
+            rightColumn.get(i).draw(g);
+        /*
         int rightcolumn_left = margin + getTextColumnWidth() + getFigureWidth();
         int rightcolumn_top = (getWholeHeight() - rightColumnHeight)/2;
         int leftcolumn_top = (getWholeHeight() - leftColumnHeight)/2;
@@ -186,6 +279,7 @@ public class VisualizerPanel extends JComponent {
                     (int)(pos + bounds.getHeight()));
             pos = pos + (int)bounds.getHeight();
         }
+        */
     }
 
     public void setZoom(double z) {

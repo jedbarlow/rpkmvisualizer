@@ -34,26 +34,30 @@ public class VisualizerPanel extends JComponent {
         public int width;
         public int height;
         public int anchorSide;
-        public String text;
+        public int regionIndex;
 
         public static final int LEFT = 0;
         public static final int RIGHT = 1;
 
         public Point getAnchor() {
             if (anchorSide == LEFT)
-                return new Point(x, y + height/2);
+                return new Point(x, y - height/2);
             else
-                return new Point(x + width, y + height/2);
+                return new Point(x + width, y - height/2);
         }
 
-        public RegionLabel(String label, int anchor, Graphics g) {
-            FontMetrics fm = g.getFontMetrics();
-            Rectangle2D bounds = fm.getStringBounds(label, g);
-            width = (int)bounds.getWidth();
-            height = (int)bounds.getHeight();
-
-            text = label;
+        public RegionLabel(int rIndex, int anchor, Graphics g) {
+            regionIndex = rIndex;
             anchorSide = anchor;
+
+            FontMetrics fm = g.getFontMetrics();
+            Rectangle2D bounds = fm.getStringBounds(getText(), g);
+            width = (int)bounds.getWidth() + 2;
+            height = (int)bounds.getHeight();
+        }
+
+        public String getText() {
+            return rpkmRegions.get(regionIndex).getName();
         }
 
         public void anchorAt(int atx, int aty) {
@@ -61,11 +65,14 @@ public class VisualizerPanel extends JComponent {
                 x = atx;
             else
                 x = atx - width;
-            y = aty - height/2;
+            y = aty + height/2;
         }
 
         public void draw(Graphics g) {
-            g.drawString(text, x, y);
+            if (anchorSide == LEFT)
+                g.drawString(getText(), x + 2, y);
+            else
+                g.drawString(getText(), x - 2, y);
         }
     }
 
@@ -165,10 +172,10 @@ public class VisualizerPanel extends JComponent {
         for (int i = 0; i < rpkmRegions.size(); i++) {
             if ((rpkmRegions.get(i).getStart() + rpkmRegions.get(i).getEnd())/2 < length/2)
                 rightColumn.add(
-                        new RegionLabel(rpkmRegions.get(i).getName(), RegionLabel.LEFT, g));
+                        new RegionLabel(i, RegionLabel.LEFT, g));
             else
-                leftColumn.add(
-                        new RegionLabel(rpkmRegions.get(i).getName(), RegionLabel.RIGHT, g));
+                leftColumn.add(0,
+                        new RegionLabel(i, RegionLabel.RIGHT, g));
         }
 
         columnHeight = Math.max(
@@ -240,6 +247,10 @@ public class VisualizerPanel extends JComponent {
                             -(endDeg - startDeg),
                             Arc2D.PIE));
         }
+
+        drawColumnAndLines(leftColumn, centerx, centery, g);
+        drawColumnAndLines(rightColumn, centerx, centery, g);
+
         g.setColor(Color.white);
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 RenderingHints.VALUE_ANTIALIAS_OFF);
@@ -248,11 +259,6 @@ public class VisualizerPanel extends JComponent {
                 RenderingHints.VALUE_ANTIALIAS_ON);
         g.setColor(c);
         g.drawOval(left, top, zoomdiam, zoomdiam);
-
-        for (int i = 0; i < leftColumn.size(); i++)
-            leftColumn.get(i).draw(g);
-        for (int i = 0; i < rightColumn.size(); i++)
-            rightColumn.get(i).draw(g);
         /*
         int rightcolumn_left = margin + getTextColumnWidth() + getFigureWidth();
         int rightcolumn_top = (getWholeHeight() - rightColumnHeight)/2;
@@ -280,6 +286,30 @@ public class VisualizerPanel extends JComponent {
             pos = pos + (int)bounds.getHeight();
         }
         */
+    }
+
+    private void drawColumnAndLines(List<RegionLabel> column, int centerx, int centery, Graphics2D g) {
+        double startDeg;
+        double endDeg;
+        for (int i = 0; i < column.size(); i++) {
+            column.get(i).draw(g);
+
+            startDeg = 360 * rpkmRegions.get(column.get(i).regionIndex).getStart() / length;
+            endDeg = 360 * rpkmRegions.get(column.get(i).regionIndex).getEnd() / length;
+
+            g.draw(
+                    new Line2D.Double(
+                            centerx,
+                            centery,
+                            centerx + Math.cos((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom,
+                            centery - Math.sin((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom));
+            g.draw(
+                    new Line2D.Double(
+                            centerx + Math.cos((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom,
+                            centery - Math.sin((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom,
+                            column.get(i).getAnchor().x,
+                            column.get(i).getAnchor().y));
+        }
     }
 
     public void setZoom(double z) {

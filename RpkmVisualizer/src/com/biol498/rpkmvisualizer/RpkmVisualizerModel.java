@@ -6,6 +6,7 @@ import com.clcbio.api.free.workbench.WorkbenchManager;
 
 public class RpkmVisualizerModel extends SidePanelModel {
     private double zoom = 1.5d;
+    private boolean displayLines = true;
 
     public RpkmVisualizerModel(WorkbenchManager manager) {
         super("RPKM Visualizer");
@@ -36,5 +37,14 @@ public class RpkmVisualizerModel extends SidePanelModel {
 
     public double getZoom() {
         return zoom;
+    }
+
+    public void setDisplayLines(boolean dl) {
+        displayLines = dl;
+        fireModelChanged();
+    }
+
+    public boolean getDisplayLines() {
+        return displayLines;
     }
 }

@@ -105,33 +105,19 @@ public class RpkmVisualizer extends AbstractEditor {
             public void modelChanged(SidePanelModel m, SidePanelEvent e) {
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
-                        if (visualizerpanel != null)
+                        if (visualizerpanel != null) {
                             visualizerpanel.setZoom(((RpkmVisualizerModel) model).getZoom());
+                            visualizerpanel.setDisplayLines(((RpkmVisualizerModel) model).getDisplayLines());
+                        }
                     }
                 });
             }
         });
 
         addSidePanelView(view);
-
-        //sequenceListener = new ObjectListener() {
-        //    public void eventOccurred(ObjectEvent event) {
-        //        if (event instanceof SelectionEvent) {
-        //            return;
-        //        }
-        //        update();
-        //    }
-        //};
-        //seq.addListener(sequenceListener);
     }
 
     public JComponent createModelView() {
-        //textArea = new JTextAreaNotPasteable();
-        //textArea.setText(seq.getString());
-        //textArea.setFont(font);
-        //textArea.setBackground(Color.WHITE);
-        //textArea.setEditable(false);
-
         visualizerpanel = new VisualizerPanel(rpkmRegions);
 
         scrollPane = new ClcFocusScrollPane(visualizerpanel) {
@@ -140,7 +126,6 @@ public class RpkmVisualizer extends AbstractEditor {
             }
         };
 
-        //textArea.setCaretPosition(0);
         return scrollPane;
     }
     

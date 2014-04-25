@@ -11,6 +11,7 @@ import com.clcbio.api.free.gui.StandardLayout;
 public class RpkmVisualizerView extends SidePanelView {
     private StandardLayout panel = null;
     private JSlider zoom;
+    private JCheckBox displayLines;
 
     public RpkmVisualizerView(final RpkmVisualizerModel model) {
         super(model);
@@ -25,6 +26,14 @@ public class RpkmVisualizerView extends SidePanelView {
                     ((RpkmVisualizerModel) getModel()).setZoom(0.2 + (5.8 * (zoom.getValue()/200.0d)));
                 }
             });
+
+            displayLines = new JCheckBox("Always Show Lines", true);
+            displayLines.addChangeListener(new ChangeListener() {
+                public void stateChanged(ChangeEvent e) {
+                    ((RpkmVisualizerModel) getModel()).setDisplayLines(displayLines.isSelected());
+                }
+            });
+
             panel = new StandardLayout();
             fillPanel();
         }
@@ -34,6 +43,7 @@ public class RpkmVisualizerView extends SidePanelView {
         createUI();
         panel.removeAll();
         panel.addComps(new JLabel("Zoom Level"), zoom);
+        panel.addComp(displayLines);
     }
 
     public JComponent getComponent() {

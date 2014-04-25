@@ -328,4 +328,9 @@ public class VisualizerPanel extends JComponent {
         needResize = true;
         repaint();
     }
+
+    public void setDisplayLines(boolean dl) {
+        displayLines = dl;
+        repaint();
+    }
 }

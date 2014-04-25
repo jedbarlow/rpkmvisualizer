@@ -9,6 +9,8 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.RenderingHints;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
@@ -74,6 +76,10 @@ public class VisualizerPanel extends JComponent {
             else
                 g.drawString(getText(), x - 2, y);
         }
+
+        public Rectangle2D getRect() {
+            return new Rectangle2D.Double(x, y, width, height);
+        }
     }
 
     private Sequence seq;
@@ -86,9 +92,11 @@ public class VisualizerPanel extends JComponent {
     private List<RpkmRegion> rpkmRegions;
     private int maxLabelWidth;
     private int columnHeight;
+    private boolean displayLines;
 
     private List<RegionLabel> leftColumn;
     private List<RegionLabel> rightColumn;
+    private RegionLabel highlighted;
 
     private boolean needResize;
 
@@ -97,6 +105,9 @@ public class VisualizerPanel extends JComponent {
 
         diameter = 300;
         zoom = 1.5d;
+        displayLines = false;
+
+        highlighted = null;
 
         needResize = true;
         // These have to be set when Graphics is available for font measuring
@@ -117,6 +128,31 @@ public class VisualizerPanel extends JComponent {
         }
 
         this.setPreferredSize(new Dimension(getWholeWidth(),getWholeHeight()));
+
+        this.addMouseMotionListener(new MouseMotionListener() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                RegionLabel over = null;
+
+                for (int i = 0; i < leftColumn.size(); i++) {
+                    if (leftColumn.get(i).getRect().contains(e.getPoint()))
+                        over = leftColumn.get(i);
+                }
+                for (int i = 0; i < rightColumn.size(); i++) {
+                    if (rightColumn.get(i).getRect().contains(e.getPoint()))
+                        over = rightColumn.get(i);
+                }
+
+                if (over != highlighted) {
+                    highlighted = over;
+                    repaint();
+                }
+            }
+        });
     }
 
     private Double rpkmToMagnitude(Double rpkm) {
@@ -259,33 +295,6 @@ public class VisualizerPanel extends JComponent {
                 RenderingHints.VALUE_ANTIALIAS_ON);
         g.setColor(c);
         g.drawOval(left, top, zoomdiam, zoomdiam);
-        /*
-        int rightcolumn_left = margin + getTextColumnWidth() + getFigureWidth();
-        int rightcolumn_top = (getWholeHeight() - rightColumnHeight)/2;
-        int leftcolumn_top = (getWholeHeight() - leftColumnHeight)/2;
-        int leftcolumn_right = margin + getTextColumnWidth();
-        int pos = rightcolumn_top;
-        int i = 0;
-        for (; i < rpkmRegions.size(); i++) {
-            if ((rpkmRegions.get(i).getStart() + rpkmRegions.get(i).getEnd())/2 > length/2)
-                break;
-            bounds = fm.getStringBounds(rpkmRegions.get(i).getName(), g);
-            g.drawString(
-                    rpkmRegions.get(i).getName(),
-                    rightcolumn_left,
-                    (int)(pos + bounds.getHeight()));
-            pos = pos + (int)bounds.getHeight();
-        }
-        pos = leftcolumn_top;
-        for (; i < rpkmRegions.size(); i++) {
-            bounds = fm.getStringBounds(rpkmRegions.get(i).getName(), g);
-            g.drawString(
-                    rpkmRegions.get(i).getName(),
-                    (int)(leftcolumn_right - bounds.getWidth()),
-                    (int)(pos + bounds.getHeight()));
-            pos = pos + (int)bounds.getHeight();
-        }
-        */
     }
 
     private void drawColumnAndLines(List<RegionLabel> column, int centerx, int centery, Graphics2D g) {
@@ -294,21 +303,23 @@ public class VisualizerPanel extends JComponent {
         for (int i = 0; i < column.size(); i++) {
             column.get(i).draw(g);
 
-            startDeg = 360 * rpkmRegions.get(column.get(i).regionIndex).getStart() / length;
-            endDeg = 360 * rpkmRegions.get(column.get(i).regionIndex).getEnd() / length;
+            if (displayLines || column.get(i) == highlighted) {
+                startDeg = 360 * rpkmRegions.get(column.get(i).regionIndex).getStart() / length;
+                endDeg = 360 * rpkmRegions.get(column.get(i).regionIndex).getEnd() / length;
 
-            g.draw(
-                    new Line2D.Double(
-                            centerx,
-                            centery,
-                            centerx + Math.cos((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom,
-                            centery - Math.sin((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom));
-            g.draw(
-                    new Line2D.Double(
-                            centerx + Math.cos((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom,
-                            centery - Math.sin((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom,
-                            column.get(i).getAnchor().x,
-                            column.get(i).getAnchor().y));
+                g.draw(
+                        new Line2D.Double(
+                                centerx,
+                                centery,
+                                centerx + Math.cos((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom,
+                                centery - Math.sin((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom));
+                g.draw(
+                        new Line2D.Double(
+                                centerx + Math.cos((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom,
+                                centery - Math.sin((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom,
+                                column.get(i).getAnchor().x,
+                                column.get(i).getAnchor().y));
+            }
         }
     }
 

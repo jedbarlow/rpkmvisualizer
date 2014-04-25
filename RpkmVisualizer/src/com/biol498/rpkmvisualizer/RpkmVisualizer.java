@@ -134,7 +134,7 @@ public class RpkmVisualizer extends AbstractEditor {
     }
 
     public String getName() {
-        return "First Editor Plugin";
+        return "RPKM Heat Map";
     }
 
     public void doPopup(MouseEvent e) {

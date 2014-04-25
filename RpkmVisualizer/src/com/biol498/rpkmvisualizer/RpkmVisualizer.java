@@ -101,7 +101,16 @@ public class RpkmVisualizer extends AbstractEditor {
         model = new RpkmVisualizerModel(manager);
         view = new RpkmVisualizerView(model);
 
-        // TODO: add side panel listener
+        model.addSidePanelListener(new SidePanelListener() {
+            public void modelChanged(SidePanelModel m, SidePanelEvent e) {
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        if (visualizerpanel != null)
+                            visualizerpanel.setZoom(((RpkmVisualizerModel) model).getZoom());
+                    }
+                });
+            }
+        });
 
         addSidePanelView(view);
 
@@ -125,7 +134,11 @@ public class RpkmVisualizer extends AbstractEditor {
 
         visualizerpanel = new VisualizerPanel(rpkmRegions);
 
-        scrollPane = new ClcFocusScrollPane(visualizerpanel);
+        scrollPane = new ClcFocusScrollPane(visualizerpanel) {
+            public boolean getScrollableTracksViewportWidth() {
+                return true;
+            }
+        };
 
         //textArea.setCaretPosition(0);
         return scrollPane;

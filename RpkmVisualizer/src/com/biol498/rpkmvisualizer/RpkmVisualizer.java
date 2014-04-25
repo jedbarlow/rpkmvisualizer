@@ -146,19 +146,15 @@ public class RpkmVisualizer extends AbstractEditor {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 try {
-                    //textArea.setText(seq.getString());
                 }
                 catch (Exception e) {
-                    //textArea.setText("ERROR");
                 }
-                //textArea.setCaretPosition(0);
             }
         });
     }
     
     protected void setEditorStateToDefault() {
         super.setEditorStateToDefault();
-        // Reset font type and scale
     }
     
     @Override

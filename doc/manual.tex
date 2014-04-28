@@ -26,20 +26,22 @@
 
 
 RpkmVisualizer operates on the output of RNA-Seq to generate a circular bar
-graph of RPKM values for regions of a genome, or pan-genome.
+graph of RPKM values for regions of a genome.
 
 \subsection{Intended Use}
 
-The plugin is meant to be used as part of gene abundance analysis of
-populations.  The intended workflow involves assembling and annotating a
-consensus sequence from DNA reads from a sample of a population, and then using
-RNA-Seq on this sequence and the original set of DNA reads.  Though RNA-Seq is
-normally purposed for expression analysis, it is used here for abundance
-analysis.  The resulting RPKM values per annotated region can then be used to
-infer the relative frequency of the presence of genes in a population.
-RpkmVisualizer serves to represent these findings graphically by displaying the
-magnitude of the RPKM values for each region along the pan-genome (consensus
-sequence).
+The plugin is meant to be used as part of gene diversity and abundance analysis
+of microbial populations.  The intended workflow involves assembling and
+annotating a consensus sequence from DNA reads from a sample of a population,
+and then using RNA-Seq on this sequence and the original set of DNA reads.
+Though RNA-Seq is normally purposed for gene expression analysis, it is used
+here for abundance analysis.  Among the resulting table is a column RPKM, which
+stands for Reads Per Kilobase of exon model per Million mapped reads, and is a
+measure representing the amount of reads per annotated region (gene).  The RPKM
+values can then be used to infer the relative frequency of the presence of
+genes in a population.  RpkmVisualizer serves to represent these findings
+graphically by displaying the magnitude of the RPKM values for each region
+along the genome.
 
 \section{Installation}
 
@@ -120,8 +122,8 @@ demonstrates a change in zoom level and line visibility options.
 \section{Additional Information and URLs}
 
 RpkmVisualizer is being actively developed by Jed Barlow at the Boucher Lab
-(Department of Biology, University of Alberta) under the direction of Yan
-Boucher.
+(Department of Biological Sciences, University of Alberta) under the direction
+of Yan Boucher.
 
 \begin{itemize}
     \item

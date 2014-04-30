@@ -13,6 +13,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,8 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
+
+import org.apache.batik.ext.awt.geom.Polygon2D;
 
 import com.clcbio.api.base.util.NoRemovalIterator;
 import com.clcbio.api.free.datatypes.bioinformatics.sequence.Sequence;
@@ -100,6 +103,8 @@ public class VisualizerPanel extends JComponent {
 
     private boolean needResize;
 
+    private Point2D graphCenter;
+
     public VisualizerPanel(List<RpkmRegion> regions) {
         rpkmRegions = regions;
 
@@ -176,6 +181,22 @@ public class VisualizerPanel extends JComponent {
         return labelHeight * column.size();
     }
 
+    private double getZoomedDiameter() {
+        return zoom * diameter;
+    }
+
+    private double getZoomedRadius() {
+        return getZoomedDiameter()/2;
+    }
+
+    private double getGraphTop() {
+        return graphCenter.getY() - getZoomedRadius();
+    }
+
+    private double getGraphLeft() {
+        return graphCenter.getX() - getZoomedRadius();
+    }
+
     private void distributeLabelsVertically(List<RegionLabel> column, int x, int upperBound, int lowerBound, Graphics g) {
         int labelHeight = getLabelHeight(g);
 
@@ -233,6 +254,10 @@ public class VisualizerPanel extends JComponent {
                 margin + columnHeight,
                 g);
 
+        graphCenter = new Point2D.Double(
+                margin + getMaxLabelWidth(leftColumn) + margin + getFigureWidth()/2,
+                getWholeHeight()/2);
+
         this.setPreferredSize(new Dimension(getWholeWidth(),getWholeHeight()));
         this.revalidate();
         needResize = false;
@@ -242,17 +267,9 @@ public class VisualizerPanel extends JComponent {
         super.paint(graphics);
 
         Graphics2D g = (Graphics2D)graphics;
-        FontMetrics fm = g.getFontMetrics();
-        Rectangle2D bounds;
 
         if (needResize)
             layoutEverything(g);
-
-        int zoomdiam = (int)(diameter * zoom);
-        int centerx = margin + getMaxLabelWidth(leftColumn) + margin + getFigureWidth()/2;
-        int centery = getWholeHeight()/2;
-        int left = centerx - (zoomdiam/2);
-        int top = centery - (zoomdiam/2);
 
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 RenderingHints.VALUE_ANTIALIAS_ON);
@@ -261,9 +278,16 @@ public class VisualizerPanel extends JComponent {
         g.setColor(Color.white);
         g.fillRect(0, 0, this.getWidth(), this.getHeight());
         g.setColor(c);
-        g.drawOval(left, top, zoomdiam, zoomdiam);
-        g.fillOval(left, top, zoomdiam, zoomdiam);
+        g.drawOval((int)getGraphLeft(), (int)getGraphTop(), (int)getZoomedDiameter(), (int)getZoomedDiameter());
+        g.fillOval((int)getGraphLeft(), (int)getGraphTop(), (int)getZoomedDiameter(), (int)getZoomedDiameter());
 
+        drawColumnAndLines(leftColumn, g);
+        drawColumnAndLines(rightColumn, g);
+
+        drawCircularBarGraph(g);
+    }
+
+    private void drawCircularBarGraph(Graphics2D g) {
         double startDeg;
         double endDeg;
         double magnitude;
@@ -275,29 +299,31 @@ public class VisualizerPanel extends JComponent {
 
             g.fill(
                     new Arc2D.Double(
-                            left - magnitude/2,
-                            top  - magnitude/2,
-                            zoomdiam + magnitude,
-                            zoomdiam + magnitude,
+                            getGraphLeft() - magnitude/2,
+                            getGraphTop()  - magnitude/2,
+                            getZoomedDiameter() + magnitude,
+                            getZoomedDiameter() + magnitude,
                             90 - startDeg,
                             -(endDeg - startDeg),
                             Arc2D.PIE));
         }
 
-        drawColumnAndLines(leftColumn, centerx, centery, g);
-        drawColumnAndLines(rightColumn, centerx, centery, g);
+        clearMiddleOfCircularBarGraph(g);
+    }
 
+    private void clearMiddleOfCircularBarGraph(Graphics2D g) {
+        Color c = g.getColor();
         g.setColor(Color.white);
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 RenderingHints.VALUE_ANTIALIAS_OFF);
-        g.fillOval(left, top, zoomdiam, zoomdiam);
+        g.fillOval((int)getGraphLeft(), (int)getGraphTop(), (int)getZoomedDiameter(), (int)getZoomedDiameter());
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 RenderingHints.VALUE_ANTIALIAS_ON);
         g.setColor(c);
-        g.drawOval(left, top, zoomdiam, zoomdiam);
+        g.drawOval((int)getGraphLeft(), (int)getGraphTop(), (int)getZoomedDiameter(), (int)getZoomedDiameter());
     }
 
-    private void drawColumnAndLines(List<RegionLabel> column, int centerx, int centery, Graphics2D g) {
+    private void drawColumnAndLines(List<RegionLabel> column, Graphics2D g) {
         double startDeg;
         double endDeg;
         for (int i = 0; i < column.size(); i++) {
@@ -309,14 +335,14 @@ public class VisualizerPanel extends JComponent {
 
                 g.draw(
                         new Line2D.Double(
-                                centerx,
-                                centery,
-                                centerx + Math.cos((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom,
-                                centery - Math.sin((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom));
+                                graphCenter.getX(),
+                                graphCenter.getY(),
+                                graphCenter.getX() + Math.cos((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom,
+                                graphCenter.getY() - Math.sin((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom));
                 g.draw(
                         new Line2D.Double(
-                                centerx + Math.cos((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom,
-                                centery - Math.sin((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom,
+                                graphCenter.getX() + Math.cos((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom,
+                                graphCenter.getY() - Math.sin((Math.PI/180) * (90 - (startDeg + (endDeg - startDeg)/2.0d))) * ((diameter + maxMagnitude)/2.0d) * zoom,
                                 column.get(i).getAnchor().x,
                                 column.get(i).getAnchor().y));
             }

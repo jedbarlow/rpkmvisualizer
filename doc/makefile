@@ -1,5 +1,6 @@
-all: manual.pdf
+all: rpkmvisualizer_manual.pdf
 
-manual.pdf: manual.tex
-	pdflatex --halt-on-error manual.tex
-	pdflatex --halt-on-error manual.tex
+rpkmvisualizer_manual.pdf: manual.tex
+	pdflatex --halt-on-error manual.tex &&\
+	pdflatex --halt-on-error manual.tex &&\
+	mv manual.pdf rpkmvisualizer_manual.pdf
